@@ -23,3 +23,140 @@ todaysMelt <- meltedStocks %>%
 stockPlot <- ggplot(data = todaysMelt %>% filter(variable != "volume"), aes(x=timestamp, y=value, color=variable))+
   geom_line()
 ggplotly(stockPlot)
+
+# Load Local
+
+# saveData <- function(data) {
+#   data <- as.data.frame(t(data))
+#   if (exists("responses")) {
+#     responses <<- rbind(responses, data)
+#   } else {
+#     responses <<- data
+#   }
+# }
+# 
+# loadData <- function() {
+#   if (exists("responses")) {
+#     responses
+#   }
+# }
+
+# Load SQL
+library(RMySQL)
+# test connection
+
+options(mysql = list(
+  "host" = "localhost",
+  "port" = 3306,
+  "user" = "user",
+  "password" = "1Z2s3e4r%"
+))
+
+databaseName <- "financeuser"
+table <- "userinput"
+
+
+saveData <- function(data) {
+  # Connect to the database
+  db <- dbConnect(MySQL(), dbname = "financeuser", host = "localhost", 
+                  port = 3306, user = "root",
+                  password = "1Z2s3e4r%")
+  # Construct the update query by looping over the data fields
+  query <- sprintf(
+    "INSERT INTO %s VALUES ('%s')",
+    table, 
+    paste(data, collapse = "', '")
+  )
+  # Submit the update query and disconnect
+  dbGetQuery(db, query)
+  dbDisconnect(db)
+}
+
+loadData <- function() {
+  # Connect to the database
+  db <- dbConnect(MySQL(), dbname = "financeuser", host = "localhost", 
+                  port = 3306, user = "root",
+                  password = "1Z2s3e4r%")
+  # Construct the fetching query
+  query <- sprintf("SELECT * FROM %s", "userinput")
+  # Submit the fetch query and disconnect
+  data <- dbGetQuery(db, query)
+  data$ID <- seq.int(nrow(data))
+  dbDisconnect(db)
+  data
+}
+loadStockData <- function() {
+  # Connect to the database
+  db <- dbConnect(MySQL(), dbname = "financeuser", host = "localhost", 
+                  port = 3306, user = "root",
+                  password = "1Z2s3e4r%")
+  # Construct the fetching query
+  query <- sprintf("SELECT * FROM %s", "stocktable_1")
+  # Submit the fetch query and disconnect
+  data <- dbGetQuery(db, query)
+  dbDisconnect(db)
+  data
+}
+
+## Quick disconnect
+
+library(RMySQL)  
+
+killDbConnections <- function () {
+  all_cons <- dbListConnections(MySQL())
+  print(all_cons)
+  for(con in all_cons)
+    +  dbDisconnect(con)
+  print(paste(length(all_cons), " connections killed."))
+}
+
+## Clear tables
+clearSQLTables1 <- function() {
+  # Connect to the database
+  db <- dbConnect(MySQL(), dbname = "financeuser", host = "localhost", 
+                  port = 3306, user = "root",
+                  password = "1Z2s3e4r%")
+  # Construct the fetching query
+  query <- sprintf("DELETE FROM userinput;")
+  # Submit the fetch query and disconnect
+  data <- dbGetQuery(db, query)
+  dbDisconnect(db)
+  data
+}
+clearSQLTables2 <- function() {
+  # Connect to the database
+  db <- dbConnect(MySQL(), dbname = "financeuser", host = "localhost", 
+                  port = 3306, user = "root",
+                  password = "1Z2s3e4r%")
+  # Construct the fetching query
+  query <- sprintf("DELETE FROM stocktable_1;")
+  # Submit the fetch query and disconnect
+  data <- dbGetQuery(db, query)
+  dbDisconnect(db)
+  data
+}
+
+
+## LOCAL STORAGE FOR TESTING
+outputDir <- "X:/1_GitHub/FinanceApplication/data/"
+
+saveData <- function(data) {
+  # data <- t(data)
+  # Create a unique file name
+  fileName <- sprintf("%s_%s.csv", as.integer(Sys.time()), digest::digest(data))
+  # Write the file to the local system
+  write.csv(
+    x = data,
+    file = file.path(outputDir, fileName), 
+    row.names = FALSE, quote = TRUE
+  )
+}
+
+loadData <- function() {
+  # Read all the files into a list
+  files <- list.files(outputDir, full.names = TRUE)
+  data <- lapply(files, read.csv, stringsAsFactors = FALSE) 
+  # Concatenate all data together into one data.frame
+  data <- do.call(rbind, data)
+  data
+}
